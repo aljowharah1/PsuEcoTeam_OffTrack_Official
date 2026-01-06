@@ -1,0 +1,2 @@
+# Racing Line API dependencies
+# Minimal - no heavy ML libraries needed for projection calculations

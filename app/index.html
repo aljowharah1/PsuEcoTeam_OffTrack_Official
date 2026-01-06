@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>PSU Racing Dashboard</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Video + Overlay Container -->
+    <div class="video-container">
+        <!-- Raspberry Pi USB Camera MJPEG Stream (background layer) -->
+        <img id="cameraStream" class="camera-feed" src="http://172.20.10.4:8001/stream" alt="Pi USB Camera Stream" onerror="this.style.display='none'">
+        <!-- Canvas overlay for racing line -->
+        <canvas id="overlayCanvas" class="overlay-canvas"></canvas>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Main Dashboard Grid -->
+        <div class="main-grid">
+            <!-- Left Panel: Track Map -->
+            <div class="left-panel">
+                <div class="track-map-container">
+                    <div id="trackMap" class="track-map"></div>
+                    <!-- GPS Fallback Mode Indicator -->
+                    <div id="gpsModeIndicator" style="display: none; position: absolute; top: 50px; left: 12px; background: rgba(255, 140, 0, 0.9); color: white; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; z-index: 1000;">
+                        🛰️ GPS MODE (OFFLINE)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel: Racing Line Guidance Only (keep middle clear for camera view) -->
+            <div class="center-panel">
+                <!-- Racing Line Guidance (top center) -->
+                <div id="racingLineGuidance" class="racing-line-guidance" style="display: none;">
+                    <div class="guidance-indicator">
+                        <div class="target-speed-label">TARGET</div>
+                        <div class="target-speed-value" id="targetSpeed">--</div>
+                        <div class="deviation-indicator">
+                            <span class="deviation-label">DEVIATION:</span>
+                            <span class="deviation-value" id="deviationValue">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Directional Helper (Center when turn approaching) -->
+                <div id="directionalHelper" class="directional-helper" style="display: none;">
+                    <svg class="arrow-svg" viewBox="0 0 100 100">
+                        <!-- Left Arrow -->
+                        <path id="arrowLeft" class="arrow-path"
+                            d="M 60 20 L 20 50 L 60 80 L 60 60 L 90 60 L 90 40 L 60 40 Z" display="none" />
+                        <!-- Right Arrow -->
+                        <path id="arrowRight" class="arrow-path"
+                            d="M 40 20 L 80 50 L 40 80 L 40 60 L 10 60 L 10 40 L 40 40 Z" display="none" />
+                        <!-- Straight Arrow -->
+                        <path id="arrowStraight" class="arrow-path"
+                            d="M 20 60 L 50 20 L 80 60 L 60 60 L 60 90 L 40 90 L 40 60 Z" display="none" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Right Panel: Speedometer only at bottom right -->
+            <div class="right-panel">
+                <div class="speedometer">
+                    <svg class="speedometer-svg" viewBox="0 0 300 300">
+                        <defs>
+                            <linearGradient id="speedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff6b35;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#ffa500;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ff6b35;stop-opacity:1" />
+                            </linearGradient>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Outer ring -->
+                        <circle cx="150" cy="150" r="140" fill="none" stroke="url(#speedGradient)" stroke-width="4"
+                            filter="url(#glow)" opacity="0.6" />
+
+                        <!-- Speed arc background -->
+                        <circle cx="150" cy="150" r="120" fill="none" stroke="rgba(255,255,255,0.1)"
+                            stroke-width="20" transform="rotate(-180 150 150)" />
+
+                        <!-- Speed arc (animated) -->
+                        <circle id="speedArc" cx="150" cy="150" r="120" fill="none" stroke="url(#speedGradient)"
+                            stroke-width="20" stroke-dasharray="754" stroke-dashoffset="754"
+                            transform="rotate(-180 150 150)" stroke-linecap="round" />
+
+                        <!-- Center circle background -->
+                        <circle cx="150" cy="150" r="90" fill="rgba(0,0,0,0.9)" stroke="rgba(255,107,53,0.3)"
+                            stroke-width="2" />
+
+                        <!-- Speed value -->
+                        <text x="150" y="155" text-anchor="middle" class="speed-value" id="speedValue">0</text>
+                        <text x="150" y="180" text-anchor="middle" class="speed-unit">KM/H</text>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Top Bar: Lap, Current, Timer in one row -->
+            <div class="top-bar">
+                <div class="top-bar-item">
+                    <span class="top-bar-label">LAP</span>
+                    <span class="top-bar-value" id="currentLap">1</span>
+                    <span class="top-bar-sub">/4</span>
+                </div>
+                <div class="top-bar-item">
+                    <span class="top-bar-value" id="currentValue">0.0</span>
+                    <span class="top-bar-unit">A</span>
+                </div>
+                <div class="top-bar-item">
+                    <span class="top-bar-value" id="timerDisplay">35:00</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/mqtt@5.0.0/dist/mqtt.min.js"></script>
+    <!-- HLS.js for GoPro streaming -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
