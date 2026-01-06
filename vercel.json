@@ -4,10 +4,6 @@
     {
       "src": "api/racing_line.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "app/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -16,12 +12,12 @@
       "dest": "/api/racing_line.py"
     },
     {
-      "src": "/app/(.*)",
-      "dest": "/app/$1"
-    },
-    {
       "src": "/app",
       "dest": "/app/index.html"
+    },
+    {
+      "src": "/app/(.*)",
+      "dest": "/app/$1"
     }
   ]
 }
