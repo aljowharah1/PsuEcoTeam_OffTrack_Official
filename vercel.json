@@ -20,8 +20,8 @@
       "dest": "/app/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/app/$1"
+      "src": "/app",
+      "dest": "/app/index.html"
     }
   ]
 }
