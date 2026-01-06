@@ -17,7 +17,7 @@ const TOPIC_PI_GPS = "car/pi_gps";
 const TOPIC = TOPIC_TELEMETRY; // Legacy support
 
 // Racing Line API (deployed to Vercel or local)
-const RACING_LINE_API = "https://your-app.vercel.app/api/racing_line"; // Update with your deployment URL
+const RACING_LINE_API = " https://psu-eco-team-off-track-official.vercel.app/api/racing_line "; // Update with your deployment URL
 // const RACING_LINE_API = "http://localhost:3000/api/racing_line"; // For local testing
 
 // Pi Camera Stream
