@@ -16,8 +16,9 @@ import time
 import threading
 import serial
 from datetime import datetime, timezone
-from flask import Flask, Response
+from flask import Flask, Response, send_from_directory
 import paho.mqtt.client as mqtt
+import os
 
 # ============== CONFIGURATION ==============
 # Camera settings
@@ -41,6 +42,11 @@ MQTT_TOPIC_GPS = "car/pi_gps"
 
 # HTTP Stream settings
 HTTP_PORT = 8001
+
+# Dashboard settings - path to dashboard files on Pi
+DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), '..', 'app')
+# If running from different location, override with absolute path:
+# DASHBOARD_DIR = "/home/pi/dashboard"
 
 # ============== GLOBAL STATE ==============
 class GPSState:
@@ -358,6 +364,17 @@ def status():
         }
     })
 
+# ============== DASHBOARD HOSTING ==============
+@app.route('/app/')
+def dashboard_index():
+    """Serve dashboard index.html."""
+    return send_from_directory(DASHBOARD_DIR, 'index.html')
+
+@app.route('/app/<path:filename>')
+def dashboard_files(filename):
+    """Serve dashboard static files (js, css, json)."""
+    return send_from_directory(DASHBOARD_DIR, filename)
+
 # ============== MAIN ==============
 def main():
     print("=" * 50)
@@ -380,8 +397,10 @@ def main():
 
     # Start HTTP server
     print(f"\n[HTTP] Starting server on port {HTTP_PORT}...")
+    print(f"[HTTP] Dashboard: http://172.20.10.4:{HTTP_PORT}/app/")
     print(f"[HTTP] Stream URL: http://172.20.10.4:{HTTP_PORT}/stream")
     print(f"[HTTP] Status URL: http://172.20.10.4:{HTTP_PORT}/status")
+    print(f"\n[DASHBOARD] Serving files from: {DASHBOARD_DIR}")
     print("\nPress Ctrl+C to stop.\n")
 
     app.run(host='0.0.0.0', port=HTTP_PORT, threaded=True)

@@ -27,7 +27,8 @@
     <!-- Video + Overlay Container -->
     <div class="video-container">
         <!-- Raspberry Pi USB Camera MJPEG Stream (background layer) -->
-        <img id="cameraStream" class="camera-feed" src="http://172.20.10.4:8001/stream" alt="Pi USB Camera Stream" onerror="this.style.display='none'">
+        <!-- Uses relative path /stream when hosted on Pi, works with http://172.20.10.4:8001/app/ -->
+        <img id="cameraStream" class="camera-feed" src="/stream" alt="Pi USB Camera Stream" onerror="this.style.display='none'">
         <!-- Canvas overlay for racing line -->
         <canvas id="overlayCanvas" class="overlay-canvas"></canvas>
     </div>
